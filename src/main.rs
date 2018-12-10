@@ -73,7 +73,7 @@ impl TicTacToe {
         };
 
         let rows = self.board.iter();
-        let columns = (0..2)
+        let columns = (0..=2)
             .into_iter()
             .map({ |i| [board[0][i], board[1][i], board[2][i]] });
 
