@@ -18,7 +18,7 @@ impl Display for Symbol {
 
 use self::Symbol::{O, X};
 
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug, PartialEq, Eq)]
 enum GameState {
     Win(Symbol),
     InProgress,
@@ -141,11 +141,14 @@ fn main() {
             let y = numbers.next().unwrap();
 
             match board.go(x, y) {
-                Ok(GameState::Win(x)) => {writeln!(stdout, "{} wins!", x).unwrap(); break
-                },
+                Ok(GameState::Win(x)) => {
+                    writeln!(stdout, "{} wins!", x).unwrap();
+                    break;
+                }
                 Ok(GameState::Draw) => {
-                    writeln!(stdout, "Draw game!").unwrap(); break
-                },
+                    writeln!(stdout, "Draw game!").unwrap();
+                    break;
+                }
                 Err(msg) => writeln!(stdout, "Move failed: {}", msg).unwrap(),
                 Ok(GameState::InProgress) => (),
             };
@@ -210,11 +213,11 @@ mod tests {
     #[test]
     fn o_wins() {
         let mut board = TicTacToe::new();
-        assert_eq!(GameState::InProgress, board.go(1,1).unwrap());
-        assert_eq!(GameState::InProgress,board.go(1,2).unwrap());
-        assert_eq!(GameState::InProgress,board.go(2,0).unwrap());
-        assert_eq!(GameState::InProgress,board.go(0,2).unwrap());
-        assert_eq!(GameState::InProgress,board.go(0,0).unwrap());
-        assert_eq!(GameState::Win(O), board.go(2,2) .unwrap());
+        assert_eq!(GameState::InProgress, board.go(1, 1).unwrap());
+        assert_eq!(GameState::InProgress, board.go(1, 2).unwrap());
+        assert_eq!(GameState::InProgress, board.go(2, 0).unwrap());
+        assert_eq!(GameState::InProgress, board.go(0, 2).unwrap());
+        assert_eq!(GameState::InProgress, board.go(0, 0).unwrap());
+        assert_eq!(GameState::Win(O), board.go(2, 2).unwrap());
     }
 }
