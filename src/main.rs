@@ -1,14 +1,24 @@
 use std::fmt::{Display, Error, Formatter};
-use std::io::{BufRead,Write};
+use std::io::{BufRead, Write};
 
-#[derive(PartialEq,Eq,Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 enum Symbol {
     X,
     O,
 }
+impl Display for Symbol {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        let c = match self {
+            Symbol::X => 'X',
+            Symbol::O => 'O',
+        };
+        write!(f, "{}", &c)
+    }
+}
 
 use self::Symbol::{O, X};
 
+#[derive(Debug,PartialEq,Eq)]
 enum GameState {
     Win(Symbol),
     InProgress,
@@ -21,7 +31,6 @@ struct TicTacToe {
     whose_turn: Symbol,
 }
 
-
 impl TicTacToe {
     pub fn new() -> Self {
         TicTacToe {
@@ -31,13 +40,13 @@ impl TicTacToe {
     }
 
     //pub fn reset(&mut self) {
-        //self.board = [[None; 3]; 3];
-        //self.whose_turn = X;
+    //self.board = [[None; 3]; 3];
+    //self.whose_turn = X;
     //}
 
     pub fn go(&mut self, x: usize, y: usize) -> Result<GameState, &'static str> {
-        if  x > 2 || y > 2 {
-            return Err("Index out of range. Must be in from 0 to 2")
+        if x > 2 || y > 2 {
+            return Err("Index out of range. Must be in from 0 to 2");
         }
 
         match self.board[x][y] {
@@ -54,38 +63,44 @@ impl TicTacToe {
     }
 
     pub fn current_state(&self) -> GameState {
-        let mut moves_remaining = false;
         let board = self.board;
-
-        // rows
-        for row in &board {
-            if row[0] == row[1] && row[0] == row[2] {
-                return GameState::Win(row[0]);
+        let these_win = |a: Option<Symbol>, b: Option<Symbol>, c: Option<Symbol>| {
+            if a == b && a == c {
+                a.map(|x| GameState::Win(x))
+            } else {
+                None
             }
-        }
+        };
 
-        let columns = (0..2).iter()
-            .map ({ |i|  [board.row[0][i], board.row[1][i], board.row[2][i]] });
-        for column in &columns {
-            if let Some(symbol) = column.next() {
-                if column.all(symbol) {
-                return GameState::Win(symbol);
-                }
+        let rows = self.board.iter();
+        let columns = (0..2)
+            .into_iter()
+            .map({ |i| [board[0][i], board[1][i], board[2][i]] });
+
+        None.or_else(|| {
+            rows.flat_map(|row| these_win(row[0], row[1], row[2]))
+                .next()
+        })
+        .or_else(|| {
+            columns
+                .flat_map(|column| these_win(column[0], column[1], column[2]))
+                .next()
+        })
+        .or_else(|| these_win(board[0][0], board[1][1], board[2][2]))
+        .or_else(|| these_win(board[2][0], board[1][1], board[0][2]))
+        .or_else(|| {
+            if board
+                .iter()
+                .map(|x| x.iter())
+                .flatten()
+                .all(|x| x.is_some())
+            {
+                Some(GameState::Draw)
+            } else {
+                Some(GameState::InProgress)
             }
-        }
-
-        // diagonals
-        let middle = board[1][1];
-        if middle == board[0][0] && middle == board[2][2] ||
-            middle == board[2][0] && middle = board[0][2] {
-                return middle;
-            }
-
-        if board.iter().iter().flatten().all(|x| x.is_some()) {
-            GameState::Draw
-        } else {
-            GameState::InProgress
-        }
+        })
+        .unwrap()
     }
 }
 
@@ -104,34 +119,37 @@ impl Display for TicTacToe {
 }
 
 fn main() {
-    let mut board = TicTacToe::new();
     let stdout = std::io::stdout();
     let mut stdout = stdout.lock();
     let stdin = std::io::stdin();
     let mut stdin = stdin.lock();
 
     loop {
-        write!(stdout, "{}\nYour move > ", &board)
-            .unwrap();
-        stdout.flush()
-            .unwrap();
-        let mut input_text = String::new();
+        let mut board = TicTacToe::new();
 
-        stdin.read_line(&mut input_text).unwrap();
+        loop {
+            write!(stdout, "{}\n{} to move > ", &board, &board.whose_turn).unwrap();
+            stdout.flush().unwrap();
 
-        let input_text = input_text.trim();
-        let mut numbers = input_text.split(',').map(|s| s.parse().unwrap());
+            let mut input_text = String::new();
+            stdin.read_line(&mut input_text).unwrap();
 
-        let x = numbers.next().unwrap();
-        let y = numbers.next().unwrap();
+            let input_text = input_text.trim();
+            let mut numbers = input_text.split(',').map(|s| s.parse().unwrap());
 
-        board.go(x, y)
-            .unwrap_or_else(|msg| {
-            writeln!(stdout, "Move failed: {}", msg)
-                .unwrap();
-        });
-        
+            let x = numbers.next().unwrap();
+            let y = numbers.next().unwrap();
 
+            match board.go(x, y) {
+                Ok(GameState::Win(x)) => {writeln!(stdout, "{} wins!", x).unwrap(); break
+                },
+                Ok(GameState::Draw) => {
+                    writeln!(stdout, "Draw game!").unwrap(); break
+                },
+                Err(msg) => writeln!(stdout, "Move failed: {}", msg).unwrap(),
+                Ok(GameState::InProgress) => (),
+            };
+        }
     }
 }
 
@@ -176,18 +194,27 @@ mod tests {
     fn moves() {
         let mut board = TicTacToe::new();
 
-        board.go(0,0).unwrap();
-        board.go(1,1).unwrap();
-        board.go(0,1).unwrap();
-
+        board.go(0, 0).unwrap();
+        board.go(1, 1).unwrap();
+        board.go(0, 1).unwrap();
     }
 
     #[test]
     fn range_result_panic() {
         let mut board = TicTacToe::new();
 
-        assert!(board.go(3,0).is_err());
-        assert!(board.go(0,3).is_err());
+        assert!(board.go(3, 0).is_err());
+        assert!(board.go(0, 3).is_err());
     }
 
+    #[test]
+    fn o_wins() {
+        let mut board = TicTacToe::new();
+        assert_eq!(GameState::InProgress, board.go(1,1).unwrap());
+        assert_eq!(GameState::InProgress,board.go(1,2).unwrap());
+        assert_eq!(GameState::InProgress,board.go(2,0).unwrap());
+        assert_eq!(GameState::InProgress,board.go(0,2).unwrap());
+        assert_eq!(GameState::InProgress,board.go(0,0).unwrap());
+        assert_eq!(GameState::Win(O), board.go(2,2) .unwrap());
+    }
 }
