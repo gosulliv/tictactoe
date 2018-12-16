@@ -1,3 +1,13 @@
+//! A tic-tac-toe board.
+//!
+//! Because it's easier to input a number in 1 through 9 than it is to
+//! give a pair of coordinates, I've implemented moving as inputting a
+//! single number. It should be at least as easy.
+//!
+//! I could have done something graphical or something with Curses or
+//! similar, but, well, that feels a bit like a framework and would add
+//! a lot of complexity. It might be good for future work, though.
+
 use std::fmt::{Display, Error, Formatter};
 use std::io::{BufRead, Write};
 
@@ -39,12 +49,7 @@ impl TicTacToe {
         }
     }
 
-    //pub fn reset(&mut self) {
-    //self.board = [[None; 3]; 3];
-    //self.whose_turn = X;
-    //}
-
-    pub fn go(&mut self, x: usize, y: usize) -> Result<GameState, &'static str> {
+    pub fn go_indices(&mut self, x: usize, y: usize) -> Result<GameState, &'static str> {
         if x > 2 || y > 2 {
             return Err("Index out of range. Must be in from 0 to 2");
         }
@@ -60,6 +65,17 @@ impl TicTacToe {
         };
 
         Ok(self.current_state())
+    }
+
+    pub fn go_index(&mut self, pos: usize) -> Result<GameState, &'static str> {
+        if pos >= 9 {
+            Err(
+                "Index out of range. There are only 9 positions in Tic-Tac-Toe, \
+                 and in this game, they are zero-indexed.",
+            )
+        } else {
+            self.go_indices(pos / 3, pos % 3)
+        }
     }
 
     pub fn current_state(&self) -> GameState {
@@ -118,6 +134,22 @@ impl Display for TicTacToe {
     }
 }
 
+fn parse_input<R: BufRead, W: Write>(stdin: &mut R, stdout: &mut W) -> usize {
+    loop {
+        let mut input_text = String::new();
+        stdin.read_line(&mut input_text).unwrap();
+
+        match input_text.trim().parse() {
+            Ok(x) => return x,
+            Err(_) => write!(
+                stdout,
+                "Invalid input. Please enter a number from 0 to 8 inclusive."
+            )
+            .unwrap(),
+        };
+    }
+}
+
 fn main() {
     let stdout = std::io::stdout();
     let mut stdout = stdout.lock();
@@ -131,16 +163,9 @@ fn main() {
             write!(stdout, "{}\n{} to move > ", &board, &board.whose_turn).unwrap();
             stdout.flush().unwrap();
 
-            let mut input_text = String::new();
-            stdin.read_line(&mut input_text).unwrap();
+            let index = parse_input(&mut stdin, &mut stdout);
 
-            let input_text = input_text.trim();
-            let mut numbers = input_text.split(',').map(|s| s.parse().unwrap());
-
-            let x = numbers.next().unwrap();
-            let y = numbers.next().unwrap();
-
-            match board.go(x, y) {
+            match board.go_index(index) {
                 Ok(GameState::Win(x)) => {
                     writeln!(stdout, "{} wins!", x).unwrap();
                     break;
@@ -197,27 +222,27 @@ mod tests {
     fn moves() {
         let mut board = TicTacToe::new();
 
-        board.go(0, 0).unwrap();
-        board.go(1, 1).unwrap();
-        board.go(0, 1).unwrap();
+        board.go_indices(0, 0).unwrap();
+        board.go_indices(1, 1).unwrap();
+        board.go_indices(0, 1).unwrap();
     }
 
     #[test]
     fn range_result_panic() {
         let mut board = TicTacToe::new();
 
-        assert!(board.go(3, 0).is_err());
-        assert!(board.go(0, 3).is_err());
+        assert!(board.go_indices(3, 0).is_err());
+        assert!(board.go_indices(0, 3).is_err());
     }
 
     #[test]
     fn o_wins() {
         let mut board = TicTacToe::new();
-        assert_eq!(GameState::InProgress, board.go(1, 1).unwrap());
-        assert_eq!(GameState::InProgress, board.go(1, 2).unwrap());
-        assert_eq!(GameState::InProgress, board.go(2, 0).unwrap());
-        assert_eq!(GameState::InProgress, board.go(0, 2).unwrap());
-        assert_eq!(GameState::InProgress, board.go(0, 0).unwrap());
-        assert_eq!(GameState::Win(O), board.go(2, 2).unwrap());
+        assert_eq!(GameState::InProgress, board.go_indices(1, 1).unwrap());
+        assert_eq!(GameState::InProgress, board.go_indices(1, 2).unwrap());
+        assert_eq!(GameState::InProgress, board.go_indices(2, 0).unwrap());
+        assert_eq!(GameState::InProgress, board.go_indices(0, 2).unwrap());
+        assert_eq!(GameState::InProgress, board.go_indices(0, 0).unwrap());
+        assert_eq!(GameState::Win(O), board.go_indices(2, 2).unwrap());
     }
 }
