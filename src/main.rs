@@ -56,7 +56,7 @@ impl TicTacToe {
 
         match self.board[x][y] {
             None => self.board[x][y] = Some(self.whose_turn),
-            Some(_) => return Err("Can't move in an occupied space"), // can't go there!
+            Some(_) => return Err("Can't move in an occupied space"),
         }
 
         self.whose_turn = match self.whose_turn {
@@ -134,22 +134,6 @@ impl Display for TicTacToe {
     }
 }
 
-fn parse_input<R: BufRead, W: Write>(stdin: &mut R, stdout: &mut W) -> usize {
-    loop {
-        let mut input_text = String::new();
-        stdin.read_line(&mut input_text).unwrap();
-
-        match input_text.trim().parse() {
-            Ok(x) => return x,
-            Err(_) => write!(
-                stdout,
-                "Invalid input. Please enter a number from 0 to 8 inclusive."
-            )
-            .unwrap(),
-        };
-    }
-}
-
 fn main() {
     let stdout = std::io::stdout();
     let mut stdout = stdout.lock();
@@ -163,7 +147,10 @@ fn main() {
             write!(stdout, "{}\n{} to move > ", &board, &board.whose_turn).unwrap();
             stdout.flush().unwrap();
 
-            let index = parse_input(&mut stdin, &mut stdout);
+            let mut input_text = String::new();
+            stdin.read_line(&mut input_text).unwrap();
+
+            let index = input_text.trim().parse().unwrap();
 
             match board.go_index(index) {
                 Ok(GameState::Win(x)) => {
