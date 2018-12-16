@@ -36,7 +36,7 @@ enum GameState {
 }
 
 struct TicTacToe {
-    /// index by row then column
+    /// indexed by row then column
     board: [[Option<Symbol>; 3]; 3],
     whose_turn: Symbol,
 }
@@ -88,6 +88,7 @@ impl TicTacToe {
             }
         };
 
+        // Find out whether someone has won.
         let rows = self.board.iter();
         let columns = (0..=2)
             .into_iter()
@@ -122,6 +123,9 @@ impl TicTacToe {
 
 impl Display for TicTacToe {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        // header
+        writeln!(f, "+---+")?;
+
         for row in &self.board {
             let line = row.iter().map(|elt| match elt {
                 None => ' ',
@@ -130,6 +134,9 @@ impl Display for TicTacToe {
             });
             writeln!(f, "|{}|", &line.collect::<String>())?;
         }
+
+        // footer
+        writeln!(f, "+---+")?;
         Ok(())
     }
 }
@@ -179,30 +186,89 @@ mod tests {
 
         let display_testcase = |board: &TicTacToe, expected: &str| {
             let mut s: String = String::new();
+
             write!(&mut s, "{}", &board).unwrap();
+
             assert_eq!(&s, expected);
         };
 
         let mut board = TicTacToe::new();
-        display_testcase(&board, "|   |\n|   |\n|   |\n");
-
+        display_testcase(
+            &board,
+            "\
++---+
+|   |
+|   |
+|   |
++---+
+",
+        );
         board.board[0][0] = Some(X);
-        display_testcase(&board, "|X  |\n|   |\n|   |\n");
-
+        display_testcase(
+            &board,
+            "\
++---+
+|X  |
+|   |
+|   |
++---+
+",
+        );
         board.board[0][0] = Some(O);
-        display_testcase(&board, "|O  |\n|   |\n|   |\n");
-
+        display_testcase(
+            &board,
+            "\
++---+
+|O  |
+|   |
+|   |
++---+
+",
+        );
         board.board[1][1] = Some(X);
-        display_testcase(&board, "|O  |\n| X |\n|   |\n");
-
+        display_testcase(
+            &board,
+            "\
++---+
+|O  |
+| X |
+|   |
++---+
+",
+        );
         board.board[2][0] = Some(O);
-        display_testcase(&board, "|O  |\n| X |\n|O  |\n");
-
+        display_testcase(
+            &board,
+            "\
++---+
+|O  |
+| X |
+|O  |
++---+
+",
+        );
         board.board[1][0] = Some(X);
-        display_testcase(&board, "|O  |\n|XX |\n|O  |\n");
-
+        display_testcase(
+            &board,
+            "\
++---+
+|O  |
+|XX |
+|O  |
++---+
+",
+        );
         board.board[2][2] = Some(O);
-        display_testcase(&board, "|O  |\n|XX |\n|O O|\n");
+        display_testcase(
+            &board,
+            "\
++---+
+|O  |
+|XX |
+|O O|
++---+
+",
+        );
     }
 
     #[test]
